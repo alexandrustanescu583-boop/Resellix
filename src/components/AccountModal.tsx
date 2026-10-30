@@ -20,6 +20,8 @@ interface AccountModalProps {
   user: UserAccount | null;
   userOrders: Order[];
   wishlist: Product[];
+  initialMode?: 'login' | 'register';
+  checkoutPrompt?: string | null;
   onClose: () => void;
   onLogin: (account: UserAccount) => void;
   onLogout: () => void;
@@ -33,6 +35,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   user,
   userOrders,
   wishlist,
+  initialMode = 'login',
+  checkoutPrompt,
   onClose,
   onLogin,
   onLogout,
@@ -43,31 +47,71 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   if (!isOpen) return null;
 
   const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'wishlist'>('orders');
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(user ? 'login' : initialMode);
 
-  // Form states for login / register
-  const [emailInput, setEmailInput] = useState(user?.email || 'andrei.popescu@gmail.com');
-  const [nameInput, setNameInput] = useState(user?.fullName || 'Andrei Popescu');
-  const [phoneInput, setPhoneInput] = useState(user?.phone || '0722 345 678');
-  const [passwordInput, setPasswordInput] = useState('••••••••');
+  // Form states for login / register (clean defaults for guests)
+  const [emailInput, setEmailInput] = useState(user?.email || '');
+  const [nameInput, setNameInput] = useState(user?.fullName || '');
+  const [phoneInput, setPhoneInput] = useState(user?.phone || '');
+  const [addressInput, setAddressInput] = useState(user?.savedAddresses?.[0] || '');
+  const [passwordInput, setPasswordInput] = useState('');
   const [loginSuccessNotice, setLoginSuccessNotice] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!user) {
+      setAuthMode(initialMode);
+    }
+  }, [initialMode, user, isOpen]);
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
+
+    if (!emailInput.trim() || !/^\S+@\S+\.\S+$/.test(emailInput.trim())) {
+      setAuthError('Introduceți o adresă de email validă.');
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (!nameInput.trim() || nameInput.trim().length < 3) {
+        setAuthError('Introduceți numele și prenumele complet.');
+        return;
+      }
+      if (!phoneInput.trim() || phoneInput.trim().length < 9) {
+        setAuthError('Introduceți un număr de telefon valid pentru curier.');
+        return;
+      }
+      if (!passwordInput.trim() || passwordInput.trim().length < 4) {
+        setAuthError('Parola trebuie să aibă minimum 4 caractere.');
+        return;
+      }
+    } else {
+      if (!passwordInput.trim()) {
+        setAuthError('Introduceți parola contului.');
+        return;
+      }
+    }
+
+    const savedAddrList = addressInput.trim() 
+      ? [addressInput.trim()] 
+      : (user?.savedAddresses || []);
+
     const account: UserAccount = {
       id: user ? user.id : `user-${Date.now()}`,
-      fullName: nameInput,
-      email: emailInput,
-      phone: phoneInput,
+      fullName: nameInput.trim() || (authMode === 'login' ? (emailInput.split('@')[0] || 'Client ReSellix') : 'Client ReSellix'),
+      email: emailInput.trim(),
+      phone: phoneInput.trim() || '0721 000 000',
       role: 'customer',
-      savedAddresses: [
-        'Str. Calea Victoriei nr. 120, Bl. C, Ap. 14, Sector 1, București'
-      ],
-      ordersCount: userOrders.length
+      savedAddresses: savedAddrList,
+      ordersCount: user ? userOrders.length : 0
     };
-    onLogin(account);
-    setLoginSuccessNotice('Conectare reușită!');
-    setTimeout(() => setLoginSuccessNotice(null), 2000);
+
+    setLoginSuccessNotice(authMode === 'register' ? 'Cont creat cu succes!' : 'Conectare reușită!');
+    setTimeout(() => {
+      onLogin(account);
+      setLoginSuccessNotice(null);
+    }, 400);
   };
 
   return (
@@ -89,15 +133,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 border-b border-neutral-800 pb-5">
-          <div className="w-12 h-12 rounded-xl bg-white text-black font-mono font-bold flex items-center justify-center text-lg">
-            {user ? user.fullName.charAt(0).toUpperCase() : 'R'}
+          <div className="w-12 h-12 rounded-xl bg-white text-black font-mono font-bold flex items-center justify-center text-lg shadow-sm">
+            {user ? user.fullName.charAt(0).toUpperCase() : (authMode === 'register' ? '+' : 'R')}
           </div>
           <div>
             <h2 className="text-xl font-mono font-bold text-white">
-              {user ? user.fullName : 'Contul Meu ReSellix'}
+              {user 
+                ? user.fullName 
+                : (authMode === 'register' ? 'Creează Cont ReSellix' : 'Autentificare Cont ReSellix')}
             </h2>
             <p className="text-xs font-mono text-neutral-400">
-              {user ? user.email : 'Autentifică-te pentru comenzi și tracking colet'}
+              {user 
+                ? user.email 
+                : 'Necesar pentru plasarea comenzilor, factură și urmărire AWB curier'}
             </p>
           </div>
         </div>
@@ -105,70 +153,159 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         {/* Not logged in: Show Login / Register form */}
         {!user ? (
           <div className="mt-6 space-y-6">
+            
+            {/* Prominent Checkout Alert Banner if redirected from checkout */}
+            {checkoutPrompt && (
+              <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-4 flex items-start gap-3">
+                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0 mt-0.5">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white uppercase tracking-wider">Pas Necesar Comandă</span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-semibold">10 Secunde</span>
+                  </div>
+                  <p className="text-neutral-300 leading-relaxed font-sans">
+                    {checkoutPrompt}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex border-b border-neutral-800 text-xs font-mono">
               <button
-                onClick={() => setAuthMode('login')}
-                className={`pb-3 px-4 border-b-2 font-medium transition-colors ${
-                  authMode === 'login' ? 'border-white text-white font-bold' : 'border-transparent text-neutral-500'
+                type="button"
+                onClick={() => {
+                  setAuthMode('register');
+                  setAuthError(null);
+                }}
+                className={`pb-3 px-5 border-b-2 font-medium transition-colors ${
+                  authMode === 'register' ? 'border-white text-white font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-300'
                 }`}
               >
-                Conectare Cont
+                Creează Cont Nou (Recomandat)
               </button>
               <button
-                onClick={() => setAuthMode('register')}
-                className={`pb-3 px-4 border-b-2 font-medium transition-colors ${
-                  authMode === 'register' ? 'border-white text-white font-bold' : 'border-transparent text-neutral-500'
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setAuthError(null);
+                }}
+                className={`pb-3 px-5 border-b-2 font-medium transition-colors ${
+                  authMode === 'login' ? 'border-white text-white font-bold' : 'border-transparent text-neutral-500 hover:text-neutral-300'
                 }`}
               >
-                Creează Cont Nou
+                Am Deja Cont · Conectare
               </button>
             </div>
 
             <form onSubmit={handleAuthSubmit} className="space-y-4 text-xs font-mono">
               {authMode === 'register' && (
                 <div>
-                  <label className="block text-neutral-400 mb-1">Nume Complet</label>
+                  <label className="block text-neutral-400 mb-1">Nume și Prenume *</label>
                   <input
                     type="text"
                     required
+                    placeholder="ex: Alexandru Popescu"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white"
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-neutral-400 mb-1">Adresă de Email</label>
+                <label className="block text-neutral-400 mb-1">Adresă de Email *</label>
                 <input
                   type="email"
                   required
+                  placeholder="ex: alexandru@exemplu.ro"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
                 />
               </div>
 
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-neutral-400 mb-1">Număr de Telefon (pentru livrare / curier) *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="ex: 0721 123 456"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
+                  />
+                </div>
+              )}
+
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-neutral-400 mb-1">Adresă de Livrare Principală (opțional)</label>
+                  <input
+                    type="text"
+                    placeholder="ex: Str. Victoriei nr. 12, Bloc A, Ap. 5, București"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="block text-neutral-400 mb-1">Parolă</label>
+                <label className="block text-neutral-400 mb-1">Parolă de Securitate *</label>
                 <input
                   type="password"
                   required
+                  placeholder="••••••••"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500"
                 />
               </div>
 
+              {authError && (
+                <div className="p-3 bg-red-950/40 border border-red-800 text-red-400 rounded-lg text-xs font-mono">
+                  {authError}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-3.5 bg-white hover:bg-neutral-200 text-black font-mono font-bold uppercase tracking-wider rounded-lg transition-colors mt-2"
+                className="w-full py-3.5 bg-white hover:bg-neutral-200 text-black font-mono font-bold uppercase tracking-wider rounded-lg transition-colors mt-2 shadow-lg active:scale-98"
               >
-                {authMode === 'login' ? 'Intră în Cont' : 'Înregistrează-te'}
+                {authMode === 'login' ? 'Intră în Cont' : 'Creează Cont & Continuă Comanda'}
               </button>
 
+              <div className="text-center pt-2">
+                {authMode === 'login' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('register');
+                      setAuthError(null);
+                    }}
+                    className="text-neutral-400 hover:text-white text-xs underline"
+                  >
+                    Nu ai cont încă? Creează un cont nou în 10 secunde
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setAuthError(null);
+                    }}
+                    className="text-neutral-400 hover:text-white text-xs underline"
+                  >
+                    Ai deja cont? Autentifică-te aici
+                  </button>
+                )}
+              </div>
+
               {loginSuccessNotice && (
-                <div className="text-center text-emerald-400 text-xs py-1">
+                <div className="text-center text-emerald-400 text-xs py-1 font-bold animate-pulse">
                   {loginSuccessNotice}
                 </div>
               )}

@@ -24,7 +24,13 @@ import {
   CreditCard,
   Lock,
   Building,
-  Wallet
+  Wallet,
+  Users,
+  MapPin,
+  Calendar,
+  Clock,
+  Phone,
+  MessageCircle
 } from 'lucide-react';
 import { Product, Order, OrderStatus, SizeStock, ProductCategory, BrandName, ProductStatus, StorePaymentSettings } from '../types/resellix';
 
@@ -347,45 +353,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-850">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-0.5">
-                    Pregătire Lansare Oficială ReSellix
+                    Gestiune Stocuri & Catalog ReSellix
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-white">Status Magazin:</span>
-                    {isLaunchClean ? (
-                      <span className="px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
-                        🟢 PREGĂTIT PENTRU LANSARE (Magazin Curat / 0 produse demo)
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-bold">
-                        🟡 MOD BETA / DEMO ({demoProductsCount} produse demonstrative de test)
-                      </span>
-                    )}
+                    <span className="px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+                      🟢 CATALOG ACTIV ({products.length} produse în stoc)
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      if (confirm('Sigur dorești să golești magazinul pentru lansare? Toate produsele demonstrative vor fi șterse, permițându-ți să pornești de la zero doar cu produsele tale reale.')) {
+                      if (confirm('Sigur dorești să resetezi catalogul? Toate produsele vor fi șterse din magazin.')) {
                         onClearDemoData();
                       }
                     }}
                     className="px-3.5 py-2 bg-red-950 hover:bg-red-900 text-red-200 border border-red-800 rounded-lg font-bold flex items-center gap-1.5 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Golește Magazinul pt Lansare</span>
+                    <span>Resetează Catalogul</span>
                   </button>
 
                   <button
                     onClick={() => {
-                      if (confirm('Dorești să restaurezi produsele demonstrative pentru a continua testarea?')) {
+                      if (confirm('Dorești să reîncarci catalogul oficial ReSellix cu toate modelele Nike, Jordan, Adidas, Yeezy și New Balance?')) {
                         onRestoreDemoData();
                       }
                     }}
                     className="px-3.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg flex items-center gap-1.5 transition-colors border border-neutral-700"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restaurează Demo</span>
+                    <span>Reîncarcă Catalogul Oficial</span>
                   </button>
                 </div>
               </div>
@@ -935,11 +935,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="text-white">{ord.customer.address}, {ord.customer.city}, {ord.customer.county}</div>
                         {ord.trackingNumber && (
                           <div className="text-emerald-400 font-bold mt-1">
-                            AWB Fan Courier: {ord.trackingNumber}
+                            {ord.meetupDetails ? 'Cod Întâlnire:' : 'AWB Fan Courier:'} {ord.trackingNumber}
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* Dedicated Meetup Details Card for the Seller */}
+                    {ord.meetupDetails && (
+                      <div className="p-3.5 bg-gradient-to-r from-emerald-950/80 via-neutral-900 to-neutral-950 border border-emerald-500/50 rounded-xl space-y-2 text-xs">
+                        <div className="flex items-center justify-between border-b border-neutral-800 pb-1.5">
+                          <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-emerald-400" />
+                            <span>PREDARE PERSONALĂ (MEET-UP FACE-TO-FACE)</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                            {ord.meetupDetails.city}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-neutral-200">
+                          <div>
+                            <span className="text-neutral-400 block">Locație stabilită:</span>
+                            <strong className="text-white text-xs">{ord.meetupDetails.location}</strong>
+                          </div>
+                          <div>
+                            <span className="text-neutral-400 block">Data & Interval orar:</span>
+                            <strong className="text-white text-xs">{ord.meetupDetails.preferredDate} · {ord.meetupDetails.preferredTimeSlot}</strong>
+                          </div>
+                        </div>
+                        {ord.meetupDetails.buyerNotes && (
+                          <div className="text-[11px] text-neutral-300 bg-black/40 p-2 rounded border border-neutral-800">
+                            <span className="text-neutral-400 font-bold">Instrucțiuni client:</span> "{ord.meetupDetails.buyerNotes}"
+                          </div>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <a
+                            href={`https://wa.me/4${ord.customer.phone.replace(/[^0-9]/g, '')}?text=Salut%20${encodeURIComponent(ord.customer.fullName)}!%20Sunt%20Alexandru%20de%20la%20ReSellix.%20Confirm%C4%83m%20%C3%AEnt%C3%A2lnirea%20pentru%20comanda%20%23${ord.orderNumber}%20la%20${encodeURIComponent(ord.meetupDetails.location)}%20pe%20data%20de%20${ord.meetupDetails.preferredDate}.`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Trimite WhatsApp de Confirmare</span>
+                          </a>
+                          <a
+                            href={`tel:${ord.customer.phone}`}
+                            className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded text-[11px] font-bold flex items-center gap-1.5 border border-neutral-700 transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Sună Clientul ({ord.customer.phone})</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Purchased items */}
                     <div className="pt-2 border-t border-neutral-850">
@@ -1193,6 +1241,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               </div>
 
+              {/* SECTION: MEETUP & PREDARE PERSONALA SETTINGS */}
+              <div className="mt-6 pt-6 border-t border-neutral-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    <span>Configurare Meet-up & Predare Personală (Același Oraș)</span>
+                  </h4>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                    Activare Automată la Cumpărători din Orașul Tău
+                  </span>
+                </div>
+                <p className="text-neutral-400 text-[11px] leading-relaxed">
+                  Dacă sistemul detectează că un client este din același oraș cu tine, îi va oferi automat opțiunea de a <strong>Organiza un Meeting Face-to-Face</strong> cu 0 LEI transport, verificare fizică și probă mărime.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
+                      Orașul Tău (Unde vinzi / predai produsele) *
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentForm.sellerCity || 'București'}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, sellerCity: e.target.value })}
+                      placeholder="ex: București, Cluj-Napoca, Timișoara"
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-2.5 text-white font-bold focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
+                      Telefon / WhatsApp Vânzător pentru Confirmări Meeting
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentForm.sellerPhone || '0721 445 889'}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, sellerPhone: e.target.value })}
+                      placeholder="ex: 0721 445 889"
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-2.5 text-white focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={paymentForm.enableMeetup ?? true}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, enableMeetup: e.target.checked })}
+                        className="rounded accent-emerald-500 w-4 h-4 bg-neutral-900 border-neutral-700"
+                      />
+                      <span className="text-white font-bold text-xs">
+                        Permite clienților din {paymentForm.sellerCity || 'orașul tău'} să aleagă opțiunea „Organizează un Meeting”
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
+                      Puncte Publice Sigure de Întâlnire (Separate prin virgulă)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={paymentForm.meetupLocations?.join(', ') || ''}
+                      onChange={(e) => setPaymentForm({ 
+                        ...paymentForm, 
+                        meetupLocations: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      })}
+                      placeholder="ex: AFI Cotroceni, Metrou Piața Victoriei, ParkLake Mall, Mega Mall"
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-2.5 text-white text-xs focus:border-emerald-500"
+                    />
+                    <p className="text-[10px] text-neutral-500 mt-1">
+                      Recomandăm locații publice iluminate (mall-uri, stații de metrou aglomerate, terase) pentru siguranța ta și a cumpărătorului.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-3 border-t border-neutral-850 flex items-center justify-between">
                 <div>
                   {savedSettingsNotice && (
@@ -1205,12 +1330,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <button
                   onClick={() => {
                     onUpdatePaymentSettings(paymentForm);
-                    setSavedSettingsNotice('Setările bancare au fost salvate cu succes!');
+                    setSavedSettingsNotice('Setările de plată și Meet-up au fost salvate cu succes!');
                     setTimeout(() => setSavedSettingsNotice(null), 3000);
                   }}
                   className="px-6 py-2.5 bg-white hover:bg-neutral-200 text-black font-bold uppercase rounded-lg transition-colors shadow-md"
                 >
-                  Salvează Datele Bancare
+                  Salvează Setările Magazinului
                 </button>
               </div>
 

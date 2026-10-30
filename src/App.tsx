@@ -59,9 +59,13 @@ import { SearchModal } from './components/SearchModal';
 import { Footer } from './components/Footer';
 
 export default function App() {
-  // PRODUCTS STATE (Empty by default for official store launch - no fake/mock items!)
+  // PRODUCTS STATE (Default to empty list per store owner request: physical stock arriving soon)
   const [productsList, setProductsList] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('resellix_products_v3');
+    // Clear any leftover legacy demo products
+    if (localStorage.getItem('resellix_products_v4')) {
+      localStorage.removeItem('resellix_products_v4');
+    }
+    const saved = localStorage.getItem('resellix_products_v5');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -70,11 +74,11 @@ export default function App() {
         console.error('Failed to parse saved products:', e);
       }
     }
-    return []; // Empty by default! Ready for owner to upload real inventory
+    return []; // No fake products - empty until physical stock is received and listed by owner
   });
 
   useEffect(() => {
-    localStorage.setItem('resellix_products_v3', JSON.stringify(productsList));
+    localStorage.setItem('resellix_products_v5', JSON.stringify(productsList));
   }, [productsList]);
 
   // ORDERS STATE (Empty by default)
@@ -133,10 +137,31 @@ export default function App() {
 
   // STORE PAYMENT & BANK SETTINGS (Configured by owner)
   const [storePaymentSettings, setStorePaymentSettings] = useState<StorePaymentSettings>(() => {
-    const saved = localStorage.getItem('resellix_payment_settings_v1');
+    const saved = localStorage.getItem('resellix_payment_settings_v2');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ownerName: 'Alexandru Stănescu / ReSellix SRL',
+          bankName: 'Banca Transilvania',
+          iban: 'RO49 BTRL 0000 1209 8831 22XX',
+          revolutTag: '@alexandru.resellix',
+          enableCod: true,
+          enableCard: true,
+          enableRevolut: true,
+          sellerCity: 'București',
+          sellerPhone: '0721 445 889',
+          enableMeetup: true,
+          meetupLocations: [
+            'AFI Cotroceni (Intrare Principală / Starbucks)',
+            'Metrou Piața Victoriei / Piața Unirii',
+            'ParkLake Mall (Zona Food Court / Parcare)',
+            'Mega Mall Pantelimon (Intrare)',
+            'Băneasa Shopping City',
+            'Locație convenită telefonic / WhatsApp'
+          ],
+          ...parsed
+        };
       } catch (e) {
         console.error('Failed to parse payment settings:', e);
       }
@@ -148,26 +173,52 @@ export default function App() {
       revolutTag: '@alexandru.resellix',
       enableCod: true,
       enableCard: true,
-      enableRevolut: true
+      enableRevolut: true,
+      sellerCity: 'București',
+      sellerPhone: '0721 445 889',
+      enableMeetup: true,
+      meetupLocations: [
+        'AFI Cotroceni (Intrare Principală / Starbucks)',
+        'Metrou Piața Victoriei / Piața Unirii',
+        'ParkLake Mall (Zona Food Court / Parcare)',
+        'Mega Mall Pantelimon (Intrare)',
+        'Băneasa Shopping City',
+        'Locație convenită telefonic / WhatsApp'
+      ]
     };
   });
 
   const handleUpdatePaymentSettings = (settings: StorePaymentSettings) => {
     setStorePaymentSettings(settings);
-    localStorage.setItem('resellix_payment_settings_v1', JSON.stringify(settings));
-    showToast('Datele bancare și setările de plată au fost salvate!');
+    localStorage.setItem('resellix_payment_settings_v2', JSON.stringify(settings));
+    showToast('Datele de plată și setările de Meet-up au fost salvate!');
   };
 
-  // USER ACCOUNT STATE
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>({
-    id: 'user-01',
-    fullName: 'Andrei Popescu',
-    email: 'andrei.popescu@gmail.com',
-    phone: '0721 123 456',
-    role: 'customer',
-    savedAddresses: ['Str. Calea Victoriei nr. 120, Bl. C, Ap. 14, București'],
-    ordersCount: 1
+  // USER ACCOUNT STATE (Guest by default so store is open to browse; creating account required on order)
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const saved = localStorage.getItem('resellix_user_session_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse user session:', e);
+      }
+    }
+    return null; // Guest by default! Open store browsing for all visitors
   });
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('resellix_user_session_v2', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('resellix_user_session_v2');
+    }
+  }, [currentUser]);
+
+  // Auth & Checkout Gateway Redirection State
+  const [accountInitialMode, setAccountInitialMode] = useState<'login' | 'register'>('register');
+  const [accountCheckoutNotice, setAccountCheckoutNotice] = useState<string | null>(null);
+  const [pendingCheckoutRedirect, setPendingCheckoutRedirect] = useState<boolean>(false);
 
   // COUPON CODE
   const [couponCode, setCouponCode] = useState<string>('RESELLIX10');
@@ -293,6 +344,23 @@ export default function App() {
     return false;
   };
 
+  // CHECKOUT TRIGGER WITH MANDATORY ACCOUNT REGISTRATION FLOW
+  const handleProceedToCheckout = () => {
+    if (!currentUser) {
+      setAccountInitialMode('register');
+      setAccountCheckoutNotice(
+        'Pentru a finaliza comanda și a genera automat factura fiscală și AWB-ul de livrare Fan Courier / Easybox, te rugăm să creezi un cont gratuit sau să te conectezi. Durează doar câteva secunde!'
+      );
+      setPendingCheckoutRedirect(true);
+      setIsCartOpen(false);
+      setIsAccountOpen(true);
+      showToast('Creează un cont gratuit pentru a finaliza comanda');
+    } else {
+      setIsCartOpen(false);
+      setIsCheckoutOpen(true);
+    }
+  };
+
   // ORDER PLACED (Update per-size inventory!)
   const handleOrderPlaced = (newOrder: Order) => {
     // 1. Decrement inventory stock per size
@@ -324,7 +392,12 @@ export default function App() {
     // 2. Add to orders
     setOrders((prev) => [newOrder, ...prev]);
 
-    // 3. Clear cart
+    // 3. Increment current user's ordersCount if authenticated
+    if (currentUser) {
+      setCurrentUser((prev) => (prev ? { ...prev, ordersCount: (prev.ordersCount || 0) + 1 } : null));
+    }
+
+    // 4. Clear cart
     setCart([]);
     showToast(`Comanda #${newOrder.orderNumber} a fost înregistrată cu succes! Total: ${newOrder.total.toLocaleString('ro-RO')} LEI`);
   };
@@ -367,12 +440,12 @@ export default function App() {
     setProductsList([]);
     setOrders([]);
     setCart([]);
-    showToast('Magazinul a fost golit complet pentru lansare oficială!');
+    showToast('Catalogul a fost resetat din panoul de administrare.');
   };
 
   const handleRestoreDemoData = () => {
     setProductsList(INITIAL_PRODUCTS);
-    showToast('Produsele demonstrative au fost restaurate pentru testare.');
+    showToast('Catalogul oficial ReSellix a fost restaurat.');
   };
 
   // FILTERED CATALOG LOGIC
@@ -467,6 +540,8 @@ export default function App() {
       <Navbar
         cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         wishlistCount={wishlist.length}
+        productsCount={productsList.length}
+        currentUser={currentUser}
         selectedCategory={selectedCategory}
         selectedBrand={selectedBrand}
         onSelectCategory={(cat) => setSelectedCategory(cat)}
@@ -474,7 +549,12 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenAccount={() => {
+          setAccountCheckoutNotice(null);
+          setPendingCheckoutRedirect(false);
+          setAccountInitialMode(currentUser ? 'login' : 'register');
+          setIsAccountOpen(true);
+        }}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenTracking={() => {
           setActiveTrackingAwb(undefined);
@@ -485,6 +565,7 @@ export default function App() {
 
       {/* Main Hero Banner: "Your Style. Your Rules." */}
       <HeroBanner
+        productsCount={productsList.length}
         onExploreClick={() => {
           const catalogEl = document.getElementById('catalog-section');
           if (catalogEl) catalogEl.scrollIntoView({ behavior: 'smooth' });
@@ -598,7 +679,7 @@ export default function App() {
                     onClick={handleRestoreDemoData}
                     className="text-neutral-400 hover:text-white underline text-[11px]"
                   >
-                    Restaurează exemple demo
+                    Reîncarcă catalogul oficial
                   </button>
                 </div>
               </div>
@@ -923,7 +1004,7 @@ export default function App() {
       </section>
 
       {/* FLOATING OWNER SHORTCUT BAR */}
-      <div className="fixed bottom-4 left-4 z-40 hidden sm:flex items-center gap-2 bg-neutral-900/90 backdrop-blur-md border border-neutral-700 px-3 py-1.5 rounded-full shadow-2xl text-xs font-mono">
+      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2 bg-neutral-900/90 backdrop-blur-md border border-neutral-700 px-3 py-1.5 rounded-full shadow-2xl text-xs font-mono">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span className="text-neutral-400">ReSellix Owner:</span>
         <button
@@ -960,7 +1041,17 @@ export default function App() {
         onDirectCheckout={(prod, size, qty) => {
           handleAddToCart(prod, size, qty);
           setDetailProduct(null);
-          setIsCheckoutOpen(true);
+          if (!currentUser) {
+            setAccountInitialMode('register');
+            setAccountCheckoutNotice(
+              'Pentru a plasa comanda rapid și a primi codul AWB de livrare Fan Courier / Sameday Easybox, te rugăm să îți creezi un cont gratuit sau să te autentifici.'
+            );
+            setPendingCheckoutRedirect(true);
+            setIsAccountOpen(true);
+            showToast('Creează un cont pentru a finaliza comanda');
+          } else {
+            setIsCheckoutOpen(true);
+          }
         }}
         onSelectRelatedProduct={(rel) => setDetailProduct(rel)}
       />
@@ -969,10 +1060,11 @@ export default function App() {
       <CartDrawer
         isOpen={isCartOpen}
         cart={cart}
+        currentUser={currentUser}
         onClose={() => setIsCartOpen(false)}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
-        onProceedToCheckout={() => setIsCheckoutOpen(true)}
+        onProceedToCheckout={handleProceedToCheckout}
         couponCode={couponCode}
         appliedDiscountPercent={discountPercent}
         onApplyCoupon={handleApplyCoupon}
@@ -982,11 +1074,21 @@ export default function App() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         cart={cart}
+        currentUser={currentUser}
         discountPercent={discountPercent}
         storePaymentSettings={storePaymentSettings}
         onClose={() => setIsCheckoutOpen(false)}
         onOrderPlaced={handleOrderPlaced}
         onViewInvoice={(ord) => setInvoiceOrder(ord)}
+        onRequestAccount={(mode) => {
+          setAccountInitialMode(mode);
+          setAccountCheckoutNotice(
+            'Crearea unui cont gratuit este obligatorie pentru a genera factura și AWB-ul de livrare a comenzii tale.'
+          );
+          setPendingCheckoutRedirect(true);
+          setIsCheckoutOpen(false);
+          setIsAccountOpen(true);
+        }}
       />
 
       {/* 4. Customer Account Modal */}
@@ -995,10 +1097,23 @@ export default function App() {
         user={currentUser}
         userOrders={orders}
         wishlist={wishlist}
-        onClose={() => setIsAccountOpen(false)}
+        initialMode={accountInitialMode}
+        checkoutPrompt={accountCheckoutNotice}
+        onClose={() => {
+          setIsAccountOpen(false);
+          setAccountCheckoutNotice(null);
+          setPendingCheckoutRedirect(false);
+        }}
         onLogin={(acc) => {
           setCurrentUser(acc);
           showToast(`Bun venit, ${acc.fullName}!`);
+          if (pendingCheckoutRedirect) {
+            setPendingCheckoutRedirect(false);
+            setAccountCheckoutNotice(null);
+            setIsAccountOpen(false);
+            setIsCheckoutOpen(true);
+            showToast('Cont activat cu succes! Continuă finalizarea comenzii.');
+          }
         }}
         onLogout={() => {
           setCurrentUser(null);

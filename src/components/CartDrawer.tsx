@@ -10,11 +10,12 @@ import {
   Info,
   Check
 } from 'lucide-react';
-import { CartItem } from '../types/resellix';
+import { CartItem, UserAccount } from '../types/resellix';
 
 interface CartDrawerProps {
   isOpen: boolean;
   cart: CartItem[];
+  currentUser?: UserAccount | null;
   onClose: () => void;
   onUpdateQuantity: (productId: string, size: string, quantity: number) => void;
   onRemoveItem: (productId: string, size: string) => void;
@@ -27,6 +28,7 @@ interface CartDrawerProps {
 export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen,
   cart,
+  currentUser,
   onClose,
   onUpdateQuantity,
   onRemoveItem,
@@ -97,10 +99,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             </button>
           </div>
 
-          {/* Test Mode Reassurance Alert */}
+          {/* Reassurance Alert */}
           <div className="bg-neutral-950 px-6 py-2.5 border-b border-neutral-800 flex items-center gap-2 text-xs text-neutral-400 font-mono">
-            <Info className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Mediu de testare activ · <strong>0 LEI retrași de pe card</strong></span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Comandă 100% securizată · <strong>Livrare Fan Courier & Easybox</strong></span>
           </div>
 
           {/* Free shipping progress bar */}
@@ -265,6 +267,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
 
               {/* Checkout Trigger */}
+              {!currentUser && (
+                <div className="text-[11px] font-mono text-neutral-400 bg-neutral-900 border border-neutral-800 rounded-lg p-2.5 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span>Pentru finalizare și emitere AWB se va crea un cont gratuit.</span>
+                </div>
+              )}
+
               <button
                 onClick={() => {
                   onClose();
@@ -272,13 +281,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 }}
                 className="w-full py-4 bg-white hover:bg-neutral-200 text-black font-mono font-bold text-sm uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-98"
               >
-                <span>Finalizează Comanda</span>
+                <span>{currentUser ? 'Finalizează Comanda' : 'Creează Cont & Finalizează'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono text-center">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Checkout criptat SSL · 0 LEI retrași în modul de testare</span>
+                <span>Checkout securizat SSL 256-bit · Livrare rapidă cu verificare colet</span>
               </div>
 
             </div>

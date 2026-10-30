@@ -94,14 +94,29 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
           </div>
 
           <div>
-            <span className="font-mono text-neutral-400 uppercase text-[10px] block mb-1">Adresă de Livrare:</span>
-            <p className="text-neutral-800">{order.customer.address}</p>
-            <p className="text-neutral-800">{order.customer.city}, Județul {order.customer.county}</p>
-            <p className="text-neutral-600 mt-1">Curier: {order.deliveryMethod.name}</p>
-            {order.trackingNumber && (
-              <p className="text-emerald-700 font-mono font-bold mt-1">
-                AWB Fan Courier: {order.trackingNumber}
-              </p>
+            <span className="font-mono text-neutral-400 uppercase text-[10px] block mb-1">
+              {order.meetupDetails ? 'Predare Personală & Locație Meeting:' : 'Adresă de Livrare:'}
+            </span>
+            {order.meetupDetails ? (
+              <div className="space-y-1">
+                <p className="text-neutral-900 font-bold">📍 {order.meetupDetails.location}</p>
+                <p className="text-neutral-800">Data & Ora: {order.meetupDetails.preferredDate} ({order.meetupDetails.preferredTimeSlot})</p>
+                <p className="text-neutral-700">Oraș: {order.meetupDetails.city}</p>
+                <p className="text-emerald-700 font-mono font-bold mt-1">
+                  Cod Meeting: {order.trackingNumber}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-neutral-800">{order.customer.address}</p>
+                <p className="text-neutral-800">{order.customer.city}, Județul {order.customer.county}</p>
+                <p className="text-neutral-600 mt-1">Curier: {order.deliveryMethod.name}</p>
+                {order.trackingNumber && (
+                  <p className="text-emerald-700 font-mono font-bold mt-1">
+                    AWB Fan Courier: {order.trackingNumber}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

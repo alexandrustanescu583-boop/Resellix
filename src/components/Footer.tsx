@@ -43,6 +43,9 @@ export const Footer: React.FC<FooterProps> = ({
             <span className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded font-medium text-[11px] text-white">
               Ramburs Fan Courier
             </span>
+            <span className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-800/80 rounded font-medium text-[11px] text-emerald-300">
+              🤝 Meet-up Face-to-Face (0 LEI)
+            </span>
           </div>
         </div>
       </div>

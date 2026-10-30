@@ -57,9 +57,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           )}
 
-          {product.isDemonstrative && (
-            <span className="text-[9px] font-mono font-medium px-2 py-0.5 rounded bg-black/80 text-neutral-400 border border-neutral-700 backdrop-blur-xs">
-              Exemplu Demo
+          {product.condition && (
+            <span className="text-[9px] font-mono font-medium px-2 py-0.5 rounded bg-black/80 text-neutral-300 border border-neutral-800 backdrop-blur-xs">
+              Deadstock
             </span>
           )}
         </div>

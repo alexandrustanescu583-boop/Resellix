@@ -70,7 +70,24 @@ export type OrderStatus =
 
 export type PaymentStatus = 'paid' | 'pending_cod' | 'refunded' | 'failed';
 
-export type PaymentMethod = 'card' | 'apple_pay' | 'google_pay' | 'cod' | 'revolut_pay';
+export type PaymentMethod = 
+  | 'card' 
+  | 'apple_pay' 
+  | 'google_pay' 
+  | 'cod' 
+  | 'revolut_pay' 
+  | 'meetup_cash' 
+  | 'meetup_revolut';
+
+export interface MeetupDetails {
+  city: string;
+  location: string;
+  preferredDate: string;
+  preferredTimeSlot: string;
+  buyerNotes?: string;
+  whatsappContact?: string;
+  confirmedBySeller?: boolean;
+}
 
 export interface Order {
   id: string;
@@ -88,6 +105,7 @@ export interface Order {
     priceRon: number;
     estimatedDays: string;
   };
+  meetupDetails?: MeetupDetails;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
@@ -113,5 +131,9 @@ export interface StorePaymentSettings {
   enableCod: boolean;
   enableCard: boolean;
   enableRevolut: boolean;
+  sellerCity: string;
+  sellerPhone?: string;
+  enableMeetup: boolean;
+  meetupLocations: string[];
 }
 

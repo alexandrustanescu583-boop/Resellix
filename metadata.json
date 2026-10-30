@@ -1,6 +1,6 @@
 {
   "name": "ReSellix — Sneakers & Streetwear Premium",
-  "description": "Magazin online premium de sneakers & streetwear: Nike, Adidas, New Balance, Puma, Asics. Catalog complet, plăți securizate, conturi clienți și panou de administrare.",
+  "description": "Magazin online premium de resell sneakers & streetwear: Nike, Jordan, Adidas, Yeezy, New Balance, Asics. Catalog complet, plăți securizate, conturi clienți și panou de administrare.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

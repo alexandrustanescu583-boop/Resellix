@@ -13,11 +13,13 @@ import {
   Truck,
   CheckCircle2
 } from 'lucide-react';
-import { ProductCategory, BrandName } from '../types/resellix';
+import { ProductCategory, BrandName, UserAccount } from '../types/resellix';
 
 interface NavbarProps {
   cartCount: number;
   wishlistCount: number;
+  productsCount?: number;
+  currentUser?: UserAccount | null;
   selectedCategory: string;
   selectedBrand: string;
   onSelectCategory: (category: string) => void;
@@ -34,6 +36,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   cartCount,
   wishlistCount,
+  productsCount = 0,
+  currentUser,
   selectedCategory,
   selectedBrand,
   onSelectCategory,
@@ -47,6 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLegal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasProducts = productsCount > 0;
 
   const navCategories: { label: string; value: string }[] = [
     { label: 'Toate', value: 'all' },
@@ -67,28 +72,30 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Top Polite Announcement Bar - Coming Soon / Stoc Nou în Sosire */}
+      {/* Top Announcement Bar - Active In-Stock Collection or Drop Preparation */}
       <div className="bg-gradient-to-r from-neutral-900 via-neutral-950 to-neutral-900 text-neutral-200 text-xs py-2 px-4 border-b border-neutral-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-semibold tracking-wider uppercase">
               <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span>Anunț ReSellix</span>
+              <span>{hasProducts ? 'Stoc Activ' : 'Drop 01 în Pregătire'}</span>
             </span>
-            <span className="text-xs text-neutral-300 font-medium">
-              Stimați clienți, noul stoc de sneakers & streetwear este în curs de recepție și verificare. Revenim foarte curând cu marfa! Vă mulțumim pentru răbdare.
+            <span className="text-xs text-neutral-300 font-medium font-mono">
+              {hasProducts 
+                ? 'Nike, Jordan, Adidas Samba, Yeezy & New Balance disponibile imediat. Livrare rapidă 24-48h.'
+                : 'Recepționăm marfa fizică originală. Înscrie-te pentru notificare VIP și acces prioritar la lansare.'}
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-[11px] text-neutral-400 shrink-0 font-mono">
             <span className="flex items-center gap-1 text-emerald-400">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>100% Originale</span>
+              <span>100% Autentic Verificat</span>
             </span>
             <span className="text-neutral-700">·</span>
             <span className="flex items-center gap-1 text-neutral-300">
               <Truck className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Plată Ramburs la Curier</span>
+              <span>Fan Courier & Sameday Easybox</span>
             </span>
           </div>
         </div>
@@ -179,11 +186,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Account */}
             <button
               onClick={onOpenAccount}
-              className="p-2.5 text-neutral-400 hover:text-white hover:bg-neutral-900 rounded-full transition-colors"
-              title="Contul Meu"
+              className="p-2.5 text-neutral-400 hover:text-white hover:bg-neutral-900 rounded-full transition-colors relative"
+              title={currentUser ? `Contul Meu: ${currentUser.fullName}` : 'Autentificare / Creează Cont'}
               aria-label="Contul Meu"
             >
               <User className="w-5 h-5" />
+              {currentUser && (
+                <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-neutral-950" />
+              )}
             </button>
 
             {/* Cart Trigger */}

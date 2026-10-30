@@ -131,11 +131,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </span>
               )}
 
-              {product.isDemonstrative && (
-                <span className="absolute bottom-3 left-3 bg-black/80 text-neutral-400 text-[10px] font-mono px-2 py-0.5 rounded border border-neutral-700">
-                  Model Demonstrativ Demo
-                </span>
-              )}
+              <span className="absolute bottom-3 left-3 bg-black/80 text-emerald-400 text-[10px] font-mono px-2 py-0.5 rounded border border-neutral-800 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                <span>100% Autentic Verificat</span>
+              </span>
             </div>
 
             {/* Gallery Thumbnails if multiple images */}
